@@ -1,0 +1,137 @@
+name: Technical Task
+description: Technical implementation task or improvement
+title: "[TECH] "
+labels: ["technical-task", "needs-refinement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Technical tasks cover implementation details, refactoring, infrastructure, and other technical work.
+
+  - type: textarea
+    id: task-description
+    attributes:
+      label: Task Description
+      description: What technical work needs to be done?
+      placeholder: Describe the technical task...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: task-type
+    attributes:
+      label: Task Type
+      description: What type of technical work is this?
+      options:
+        - Implementation - New feature implementation
+        - Refactoring - Code improvement/cleanup
+        - Infrastructure - Build, CI/CD, tooling
+        - Documentation - Technical documentation
+        - Testing - Test implementation or improvement
+        - Performance - Optimization work
+        - Security - Security improvement
+        - Dependencies - Dependency updates or changes
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-requirements
+    attributes:
+      label: Technical Requirements
+      description: What are the technical requirements and constraints?
+      placeholder: |
+        - Requirement 1
+        - Requirement 2
+        - Constraint 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-approach
+    attributes:
+      label: Implementation Approach
+      description: How should this be implemented? Include any architectural decisions.
+      placeholder: Describe the approach, technologies, and patterns to use...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component does this task affect?
+      options:
+        - Core Data Models
+        - User Interface
+        - Notification System
+        - Export Engine
+        - File Management
+        - Settings Management
+        - Testing Framework
+        - Build System
+        - Documentation
+        - CI/CD
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this technical task?
+      options:
+        - Critical - Blocking other work
+        - High - Should be done soon
+        - Medium - Normal priority
+        - Low - Can be done later
+    validations:
+      required: true
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort Estimate
+      description: How much effort will this take?
+      options:
+        - 1 - Very small (few hours)
+        - 2 - Small (1-2 days)
+        - 3 - Medium (3-5 days)
+        - 5 - Large (1-2 weeks)
+        - 8 - Very large (2+ weeks)
+    validations:
+      required: false
+
+  - type: textarea
+    id: testing-approach
+    attributes:
+      label: Testing Approach
+      description: How will this be tested?
+      placeholder: Describe unit tests, integration tests, manual testing needed...
+    validations:
+      required: false
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: What other tasks or external dependencies does this rely on?
+      placeholder: |
+        - Depends on #123
+        - Requires Swift 5.9+
+        - Needs design approval
+    validations:
+      required: false
+
+  - type: textarea
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      description: What criteria must be met for this task to be complete?
+      placeholder: |
+        - [ ] Implementation complete
+        - [ ] Tests written and passing
+        - [ ] Code reviewed
+        - [ ] Documentation updated
+        - [ ] No breaking changes
+    validations:
+      required: false

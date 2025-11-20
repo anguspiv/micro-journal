@@ -1,0 +1,46 @@
+[package]
+name = "microlog"
+version = "0.1.0"
+edition = "2021"
+description = "A micro journaling CLI tool for quick daily entries"
+license = "MIT"
+authors = ["Your Name <your.email@example.com>"]
+repository = "https://github.com/yourusername/micro-journal"
+homepage = "https://github.com/yourusername/micro-journal"
+keywords = ["journal", "diary", "cli", "logging", "notes"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+# CLI framework
+clap = { version = "4.4", features = ["derive", "env"] }
+
+# Database
+rusqlite = { version = "0.30", features = ["bundled", "chrono"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Date and time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID generation for entry IDs
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Configuration management
+config = "0.14"
+
+# Template engine for exports
+handlebars = "4.5"
+
+# Error handling
+anyhow = "1.0"
+
+# Colored output
+colored = "2.0"
+
+[dev-dependencies]
+# Testing utilities
+tempfile = "3.8"
+assert_cmd = "2.0"
+predicates = "3.0"

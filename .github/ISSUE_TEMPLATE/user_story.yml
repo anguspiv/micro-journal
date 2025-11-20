@@ -1,0 +1,119 @@
+name: User Story
+description: Create a user story for development planning
+title: "[STORY] As a [user type], I want [goal] so that [benefit]"
+labels: ["user-story", "needs-refinement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        User stories help us understand features from the user's perspective. Please fill out the story details below.
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Write the user story in the format "As a [user type], I want [goal] so that [benefit]"
+      placeholder: |
+        As a [type of user],
+        I want [some goal]
+        so that [some reason/benefit].
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What needs to be true for this story to be considered complete?
+      placeholder: |
+        Given [some context]
+        When [some action is taken]
+        Then [some result is expected]
+
+        - [ ] Criteria 1
+        - [ ] Criteria 2
+        - [ ] Criteria 3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user-type
+    attributes:
+      label: User Type
+      description: What type of user is this story for?
+      options:
+        - Casual journaler
+        - Regular journaler
+        - Power user
+        - Developer
+        - Administrator
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Business Priority
+      description: How important is this story for the product?
+      options:
+        - Must have (Critical)
+        - Should have (Important)
+        - Could have (Nice to have)
+        - Won't have (Future consideration)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort Estimate
+      description: How much effort do you think this will take?
+      options:
+        - 1 - Very small (few hours)
+        - 2 - Small (1-2 days)
+        - 3 - Medium (3-5 days)
+        - 5 - Large (1-2 weeks)
+        - 8 - Very large (2+ weeks)
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the app does this story relate to?
+      options:
+        - Entry Creation
+        - Prompting System
+        - Export Functionality
+        - User Interface
+        - Data Management
+        - Notifications
+        - Settings
+        - Onboarding
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Notes
+      description: Any additional context, dependencies, or technical considerations
+    validations:
+      required: false
+
+  - type: textarea
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      description: What needs to be completed beyond the acceptance criteria?
+      placeholder: |
+        - [ ] Code written and reviewed
+        - [ ] Tests written and passing
+        - [ ] Documentation updated
+        - [ ] Accessibility considered
+        - [ ] Performance tested
+        - [ ] UX reviewed
+    validations:
+      required: false
