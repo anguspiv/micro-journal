@@ -119,6 +119,9 @@ EOF
 
 chmod +x "$PRE_COMMIT_HOOK"
 
+# Configure git to use local hooks directory
+git config core.hookspath .git/hooks
+
 echo "✅ Git hooks installed successfully!"
 echo
 echo "📋 Installed hooks:"
