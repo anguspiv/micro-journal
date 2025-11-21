@@ -5,6 +5,7 @@ use std::path::Path;
 
 use crate::Cli;
 
+#[allow(dead_code)]
 pub fn generate_man_pages<P: AsRef<Path>>(out_dir: P) -> std::io::Result<()> {
     let out_dir = out_dir.as_ref();
 
