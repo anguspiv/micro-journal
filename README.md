@@ -4,9 +4,9 @@ A micro journaling application that prompts you at regular intervals to create q
 
 ## 🎯 Project Status
 
-**Current Phase**: Phase 1 - Native macOS Application (MVP)
+**Current Phase**: Phase 1 - CLI Foundation (MVP)
 **Version**: Pre-release / Development
-**Platform**: macOS (iOS, Web, and other platforms planned for future phases)
+**Platform**: Cross-platform CLI (macOS, Linux, Windows)
 
 ## ✨ Features
 
@@ -15,32 +15,47 @@ A micro journaling application that prompts you at regular intervals to create q
 - **Rich Content Support**: Text, photos, videos, and file attachments
 - **Daily Consolidation**: Automatic compilation of micro entries into daily journal files
 - **Multi-format Export**: Support for Obsidian, Apple Notes, Markdown, and plain text
+- **Cross-platform CLI**: Single binary that works on macOS, Linux, and Windows
 
-### macOS Integration
-- Native SwiftUI interface
-- Menu bar integration for quick access
-- Native notifications
-- File system integration for exports
-- Keyboard shortcuts and accessibility support
+### CLI Commands
+- **`microlog add`**: Quick entry creation
+- **`microlog list`**: View journal entries
+- **`microlog export`**: Export to various formats
+- **`microlog consolidate`**: Daily consolidation
+- **`microlog prompt`**: Interactive prompting
+- **`microlog config`**: Configuration management
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- macOS 14.0 or later
-- Xcode 15.0 or later
-- Swift 5.9 or later
+- Rust 1.70+ with Cargo
+- Git
 
 ### Installation
 
 #### For Development
 ```bash
 git clone https://github.com/anguspiv/micro-journal.git
-cd micro-journal
-open MicroJournal.xcodeproj
+cd micro-journal/core
+cargo build
+cargo run -- --help
+```
+
+#### Quick Start
+```bash
+# Add your first entry
+cargo run -- add "Just tried microlog for the first time!"
+
+# List entries
+cargo run -- list
+
+# Get help for any command
+cargo run -- add --help
+cargo run -- export --help
 ```
 
 #### For Users
-*Coming soon - App Store and direct download releases*
+*Coming soon - Pre-built binaries and package manager installations*
 
 ## 📖 Documentation
 
@@ -54,33 +69,42 @@ open MicroJournal.xcodeproj
 ### Project Structure
 ```
 micro-journal/
-├── Sources/               # Swift source code
-├── Tests/                # Unit and integration tests
-├── Resources/            # Assets, localizations
-├── Documentation/        # Detailed documentation
+├── core/                  # Rust CLI application
+│   ├── src/              # Rust source code
+│   ├── tests/            # Unit and integration tests
+│   └── Cargo.toml        # Rust project configuration
+├── apps/                 # Future platform applications
+├── docs/                 # Project documentation
 └── .github/             # GitHub templates and workflows
 ```
 
 ### Building and Testing
 ```bash
 # Build the project
-swift build
+cd core
+cargo build
 
 # Run tests
-swift test
+cargo test
 
-# Run with coverage
-swift test --enable-code-coverage
+# Run with coverage (requires cargo-tarpaulin)
+cargo tarpaulin
+
+# Build optimized release
+cargo build --release
 ```
 
 ### Code Quality
-We use SwiftLint for code style enforcement:
+We use Rust's built-in tools for code quality:
 ```bash
-# Install SwiftLint
-brew install swiftlint
+# Format code
+cargo fmt
 
-# Run linting
-swiftlint
+# Lint code
+cargo clippy
+
+# Check for issues
+cargo check
 ```
 
 ## 📋 Project Management
@@ -110,25 +134,31 @@ Users can create custom export templates to match their preferred journaling wor
 
 ## 🔄 Roadmap
 
-### Phase 1: macOS MVP *(Current)*
+### Phase 1: CLI Foundation *(Current)*
 - [x] Project setup and architecture
-- [ ] Core entry creation and management
-- [ ] Basic export functionality
-- [ ] Native macOS integration
+- [x] Basic CLI command structure
+- [ ] Database models and SQLite integration
+- [ ] Core entry creation and management (`add` command)
+- [ ] Entry listing functionality (`list` command)
+- [ ] Basic export functionality (`export` command)
 
-### Phase 2: Enhanced Features
-- [ ] Advanced export formats
-- [ ] macOS ecosystem integration (Shortcuts, Spotlight)
-- [ ] Enhanced UI and user experience
+### Phase 2: macOS GUI Application
+- [ ] SwiftUI wrapper calling CLI binary
+- [ ] Native macOS notifications
+- [ ] Menu bar integration
+- [ ] GUI settings and preferences
 
-### Phase 3: Cross-Platform
-- [ ] iOS application
-- [ ] Web application
-- [ ] Data synchronization
+### Phase 3: Enhanced Features & Background Services
+- [ ] Background scheduling daemon
+- [ ] Advanced export formats and templates
+- [ ] Interactive prompting system
+- [ ] Shortcuts app integration
 
-### Phase 4: Platform Expansion
-- [ ] Android application
-- [ ] Windows and Linux desktop apps
+### Phase 4: Cross-Platform Expansion
+- [ ] iOS application (shared CLI core)
+- [ ] Web application with API server
+- [ ] Tauri desktop apps (Windows/Linux)
+- [ ] Data synchronization across platforms
 
 ## 📄 License
 
