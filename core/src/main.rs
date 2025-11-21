@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{CommandFactory,Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
