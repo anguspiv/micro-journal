@@ -1,5 +1,5 @@
-use clap::{CommandFactory, Parser, Subcommand};
 use anyhow::Result;
+use clap::{CommandFactory, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -100,7 +100,11 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Add { content, media, tags }) => {
+        Some(Commands::Add {
+            content,
+            media,
+            tags,
+        }) => {
             println!("Adding entry: {}", content);
             if let Some(media_files) = media {
                 println!("Media files: {:?}", media_files);
@@ -109,7 +113,7 @@ fn main() -> Result<()> {
                 println!("Tags: {:?}", entry_tags);
             }
             // TODO: Implement add functionality
-        },
+        }
 
         Some(Commands::List { date, recent, days }) => {
             println!("Listing entries...");
@@ -123,9 +127,14 @@ fn main() -> Result<()> {
                 println!("Last {} days", d);
             }
             // TODO: Implement list functionality
-        },
+        }
 
-        Some(Commands::Export { format, output, from, to }) => {
+        Some(Commands::Export {
+            format,
+            output,
+            from,
+            to,
+        }) => {
             println!("Exporting entries in {} format", format);
             if let Some(o) = output {
                 println!("Output: {}", o);
@@ -137,15 +146,19 @@ fn main() -> Result<()> {
                 println!("To: {}", t);
             }
             // TODO: Implement export functionality
-        },
+        }
 
-        Some(Commands::Consolidate { date, format, output }) => {
+        Some(Commands::Consolidate {
+            date,
+            format,
+            output,
+        }) => {
             println!("Consolidating entries for {} in {} format", date, format);
             if let Some(o) = output {
                 println!("Output: {}", o);
             }
             // TODO: Implement consolidate functionality
-        },
+        }
 
         Some(Commands::Prompt { template }) => {
             println!("Starting interactive prompt...");
@@ -153,7 +166,7 @@ fn main() -> Result<()> {
                 println!("Using template: {}", t);
             }
             // TODO: Implement prompt functionality
-        },
+        }
 
         Some(Commands::Config { key, value, list }) => {
             if *list {
@@ -168,7 +181,7 @@ fn main() -> Result<()> {
                     // TODO: Get config value
                 }
             }
-        },
+        }
 
         None => {
             // No command provided, show help
