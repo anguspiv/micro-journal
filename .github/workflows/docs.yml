@@ -1,0 +1,232 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'core/src/**'
+      - 'README.md'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'core/src/**'
+      - 'README.md'
+
+  # Allow manual triggering
+  workflow_dispatch:
+
+# Permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: core -> target
+
+    - name: Install mdBook
+      run: |
+        curl -L https://github.com/rust-lang/mdBook/releases/latest/download/mdbook-v0.4.36-x86_64-unknown-linux-gnu.tar.gz | tar xz
+        chmod +x mdbook
+        sudo mv mdbook /usr/local/bin/
+
+    - name: Install mdBook plugins
+      run: |
+        cargo install mdbook-linkcheck
+        cargo install mdbook-toc
+        cargo install mdbook-mermaid
+
+    - name: Generate CLI help documentation
+      run: |
+        cd core
+
+        # Build the CLI tool
+        cargo build --release
+
+        # Generate help text for documentation
+        mkdir -p ../docs/src/generated
+
+        # Main help
+        ./target/release/microlog --help > ../docs/src/generated/help.txt
+
+        # Command-specific help
+        ./target/release/microlog add --help > ../docs/src/generated/help-add.txt
+        ./target/release/microlog list --help > ../docs/src/generated/help-list.txt
+        ./target/release/microlog export --help > ../docs/src/generated/help-export.txt
+        ./target/release/microlog consolidate --help > ../docs/src/generated/help-consolidate.txt
+        ./target/release/microlog prompt --help > ../docs/src/generated/help-prompt.txt
+        ./target/release/microlog config --help > ../docs/src/generated/help-config.txt
+
+    - name: Generate API documentation
+      run: |
+        cd core
+        cargo doc --no-deps --all-features --document-private-items
+
+        # Copy API docs to mdBook
+        mkdir -p ../docs/src/generated/api
+        cp -r target/doc/* ../docs/src/generated/api/
+
+    - name: Build mdBook
+      run: |
+        cd docs
+        mdbook build
+
+    - name: Setup Pages
+      if: github.ref == 'refs/heads/main'
+      uses: actions/configure-pages@v4
+
+    - name: Upload Pages artifact
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: docs/book
+
+    - name: Check links
+      run: |
+        cd docs
+        mdbook test
+
+  deploy-docs:
+    name: Deploy Documentation
+    if: github.ref == 'refs/heads/main'
+    needs: build-docs
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+  check-docs:
+    name: Check Documentation
+    if: github.event_name == 'pull_request'
+    needs: build-docs
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Comment on PR
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const body = `## 📚 Documentation Preview
+
+          The documentation build completed successfully!
+
+          ### Generated Content
+          - ✅ CLI help documentation auto-generated
+          - ✅ API documentation from Rust code
+          - ✅ mdBook compilation successful
+          - ✅ Link checking passed
+
+          ### What to Review
+          - Check that new features have corresponding documentation
+          - Verify examples and code snippets are accurate
+          - Ensure navigation structure makes sense
+
+          The full documentation site will be available at [GitHub Pages](https://anguspiv.github.io/micro-journal/) once this PR is merged.`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+
+  check-cli-changes:
+    name: Check CLI Changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Check for CLI interface changes
+      run: |
+        cd core
+
+        # Build current version
+        cargo build --release
+        ./target/release/microlog --help > /tmp/current-help.txt
+
+        # Checkout main and build
+        git checkout origin/main -- .
+        cargo build --release
+        ./target/release/microlog --help > /tmp/main-help.txt
+
+        # Compare help output
+        if ! diff -u /tmp/main-help.txt /tmp/current-help.txt > /tmp/help-diff.txt; then
+          echo "CLI_CHANGED=true" >> $GITHUB_ENV
+          echo "Help output changed:"
+          cat /tmp/help-diff.txt
+        else
+          echo "CLI_CHANGED=false" >> $GITHUB_ENV
+        fi
+
+    - name: Comment on CLI changes
+      if: env.CLI_CHANGED == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const diff = fs.readFileSync('/tmp/help-diff.txt', 'utf8');
+
+          const body = `## 🔧 CLI Interface Changes Detected
+
+          This PR modifies the CLI interface. Please ensure:
+
+          - [ ] Documentation reflects the new interface
+          - [ ] Examples are updated
+          - [ ] Breaking changes are noted
+          - [ ] Help text is clear and helpful
+
+          ### Help Output Changes
+
+          \`\`\`diff
+          ${diff}
+          \`\`\`
+
+          Consider updating the documentation to reflect these changes.`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });

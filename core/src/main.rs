@@ -1,10 +1,26 @@
 use clap::{CommandFactory, Parser, Subcommand};
 use anyhow::Result;
 
+mod man;
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 #[command(name = "microlog")]
 #[command(about = "A micro journaling CLI tool for quick daily entries")]
+#[command(long_about = "
+Microlog helps you capture your day through quick, frequent journal entries
+that automatically consolidate into comprehensive daily journals.
+
+Perfect for building consistent journaling habits with minimal friction.
+Export to any format: Obsidian, Apple Notes, Markdown, and more.
+
+Examples:
+  microlog add \"Great coffee meeting with Sarah\"
+  microlog list --date today
+  microlog export --format obsidian
+  microlog consolidate --date today
+
+Visit https://anguspiv.github.io/micro-journal/ for full documentation.")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -13,16 +29,27 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Add a new journal entry
+    #[command(long_about = "
+Create a new micro journal entry with optional media and tags.
+
+This is the core command for capturing moments throughout your day.
+Entries are timestamped and stored in your local database.
+
+Examples:
+  microlog add \"Had an amazing lunch at the new cafe\"
+  microlog add \"Productive meeting\" --tags work,success
+  microlog add \"Beautiful sunset\" --media sunset.jpg
+  microlog add \"Great workout session\" -t fitness -t personal")]
     Add {
         /// The content of the journal entry
         content: String,
 
-        /// Add media files to the entry
-        #[arg(short, long)]
+        /// Add media files to the entry (photos, videos, documents)
+        #[arg(short, long, value_name = "FILE")]
         media: Option<Vec<String>>,
 
-        /// Add tags to the entry
-        #[arg(short, long)]
+        /// Add tags to categorize the entry
+        #[arg(short, long, value_name = "TAG")]
         tags: Option<Vec<String>>,
     },
 
