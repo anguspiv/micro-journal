@@ -34,7 +34,7 @@ A micro journaling application that prompts you at regular intervals to create q
 
 #### For Development
 ```bash
-git clone https://github.com/yourusername/micro-journal.git
+git clone https://github.com/anguspiv/micro-journal.git
 cd micro-journal
 open MicroJournal.xcodeproj
 ```
