@@ -60,16 +60,26 @@ We use [Conventional Commits](https://www.conventionalcommits.org/) for commit m
 <footer>
 ```
 
-#### Commit Types
-- **feat**: New feature
-- **fix**: Bug fix
-- **docs**: Documentation changes
-- **style**: Code style changes (formatting, etc.)
-- **refactor**: Code refactoring
-- **test**: Adding or updating tests
-- **build**: Build system changes
-- **ci**: CI/CD changes
-- **chore**: Maintenance tasks
+#### Commit Types & Release Impact
+- **feat**: New feature (→ minor version bump)
+- **fix**: Bug fix (→ patch version bump)
+- **perf**: Performance improvement (→ patch version bump)
+- **docs**: Documentation changes (→ no version bump)
+- **style**: Code style changes (→ no version bump)
+- **refactor**: Code refactoring (→ no version bump)
+- **test**: Adding or updating tests (→ no version bump)
+- **build**: Build system changes (→ no version bump)
+- **ci**: CI/CD changes (→ no version bump)
+- **chore**: Maintenance tasks (→ no version bump)
+
+#### Breaking Changes
+Add `!` after type or `BREAKING CHANGE:` in footer for major version bumps:
+```bash
+git commit -m "feat!: change CLI interface completely"
+git commit -m "feat(api): add new endpoint
+
+BREAKING CHANGE: removes the old /v1/entries endpoint"
+```
 
 #### Examples
 ```bash
@@ -77,6 +87,23 @@ git commit -m "feat(cli): add interactive prompt command"
 git commit -m "fix(export): handle empty date ranges correctly"
 git commit -m "docs: update CLI usage examples in README"
 ```
+
+#### Local Validation Tools
+Install git hooks for automatic validation:
+```bash
+./scripts/install-git-hooks.sh
+```
+
+Check commits before pushing:
+```bash
+./scripts/check-commits.sh
+```
+
+The CI system will automatically:
+- ✅ Validate conventional commit format
+- 📊 Analyze release impact (what version bump will occur)
+- 💬 Comment on PRs with release impact and suggestions
+- 🚨 Warn about missing documentation for new features
 
 ### 5. Push and Create PR
 ```bash
