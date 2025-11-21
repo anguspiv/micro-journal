@@ -89,21 +89,38 @@ git commit -m "docs: update CLI usage examples in README"
 ```
 
 #### Local Validation Tools
-Install git hooks for automatic validation:
+
+**Install git hooks** for automatic validation and code quality:
 ```bash
 ./scripts/install-git-hooks.sh
 ```
 
-Check commits before pushing:
+This installs:
+- **Pre-commit hook**: Runs `cargo fmt`, `cargo clippy`, compilation, and tests
+- **Commit-msg hook**: Validates conventional commit format
+- **Prepare-commit-msg**: Provides helpful commit templates
+
+**Manual validation** before pushing:
 ```bash
+# Check all commits on your branch
 ./scripts/check-commits.sh
+
+# Run the same checks as pre-commit hook
+./scripts/pre-commit-hook.sh
 ```
 
-The CI system will automatically:
+**Pre-commit hook features**:
+- 🔧 **Auto-fixes** formatting and some lints
+- 🚫 **Blocks commits** if code doesn't compile or tests fail
+- 📝 **Stages fixes** automatically when possible
+- ⚡ **Fast feedback** - catches issues before CI
+
+**The CI system will automatically**:
 - ✅ Validate conventional commit format
-- 📊 Analyze release impact (what version bump will occur)
+- 📊 Analyze release impact (version bump prediction)
 - 💬 Comment on PRs with release impact and suggestions
 - 🚨 Warn about missing documentation for new features
+- 🔍 Run the same code quality checks as your local hooks
 
 ### 5. Push and Create PR
 ```bash

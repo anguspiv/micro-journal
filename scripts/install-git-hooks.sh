@@ -7,8 +7,9 @@ set -e
 
 HOOKS_DIR=".git/hooks"
 COMMIT_MSG_HOOK="$HOOKS_DIR/commit-msg"
+PRE_COMMIT_HOOK="$HOOKS_DIR/pre-commit"
 
-echo "🔗 Installing git hooks for conventional commit validation..."
+echo "🔗 Installing git hooks for code quality and commit validation..."
 
 # Create hooks directory if it doesn't exist
 mkdir -p "$HOOKS_DIR"
@@ -98,19 +99,47 @@ EOF
 
 chmod +x "$HOOKS_DIR/prepare-commit-msg"
 
+# Create pre-commit hook for code quality
+cat > "$PRE_COMMIT_HOOK" << 'EOF'
+#!/bin/bash
+
+# Pre-commit hook - run the comprehensive pre-commit script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Check if pre-commit script exists
+if [ -f "$PROJECT_ROOT/scripts/pre-commit-hook.sh" ]; then
+    exec "$PROJECT_ROOT/scripts/pre-commit-hook.sh"
+else
+    echo "⚠️  Pre-commit script not found at $PROJECT_ROOT/scripts/pre-commit-hook.sh"
+    echo "Skipping pre-commit checks..."
+    exit 0
+fi
+EOF
+
+chmod +x "$PRE_COMMIT_HOOK"
+
 echo "✅ Git hooks installed successfully!"
 echo
 echo "📋 Installed hooks:"
+echo "   • pre-commit: Runs code quality checks (format, lint, compile, test)"
 echo "   • commit-msg: Validates conventional commit format"
 echo "   • prepare-commit-msg: Provides helpful commit template"
 echo
 echo "💡 Usage:"
-echo "   • Regular commits will show a template with examples"
-echo "   • Invalid conventional commit messages will be rejected"
+echo "   • Pre-commit hook runs automatically and auto-fixes issues when possible"
+echo "   • Invalid code will block commits until fixed"
+echo "   • Conventional commit format is enforced"
 echo "   • Run './scripts/check-commits.sh' to validate existing commits"
 echo
-echo "🔧 To disable temporarily:"
+echo "🔧 Pre-commit checks include:"
+echo "   • cargo fmt (auto-fixes formatting)"
+echo "   • cargo clippy (auto-fixes some lints)"
+echo "   • cargo check (compilation)"
+echo "   • cargo test (all tests must pass)"
+echo
+echo "🔧 To skip temporarily:"
 echo "   git commit --no-verify -m 'your message'"
 echo
 echo "🗑️  To uninstall:"
-echo "   rm .git/hooks/commit-msg .git/hooks/prepare-commit-msg"
+echo "   rm .git/hooks/pre-commit .git/hooks/commit-msg .git/hooks/prepare-commit-msg"
