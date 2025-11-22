@@ -1,0 +1,20 @@
+# Global code owners
+* @anguspiv
+
+# Rust core application
+/core/ @anguspiv
+
+# CI/CD and GitHub configuration
+/.github/ @anguspiv
+
+# Documentation
+*.md @anguspiv
+/docs/ @anguspiv
+
+# Configuration files
+Cargo.toml @anguspiv
+.gitignore @anguspiv
+
+# Security sensitive files
+/core/Cargo.lock @anguspiv
+/.github/workflows/ @anguspiv

@@ -1,0 +1,384 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  commitlint:
+    name: Lint Commit Messages
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install commitlint
+      run: |
+        npm install -g @commitlint/cli @commitlint/config-conventional
+
+    - name: Create commitlint config
+      run: |
+        cat > .commitlintrc.js << 'EOF'
+        module.exports = {
+          extends: ['@commitlint/config-conventional'],
+          rules: {
+            'type-enum': [2, 'always', [
+              'feat',
+              'fix',
+              'docs',
+              'style',
+              'refactor',
+              'perf',
+              'test',
+              'build',
+              'ci',
+              'chore',
+              'revert'
+            ]],
+            'scope-case': [2, 'always', 'lower-case'],
+            'subject-case': [2, 'always', 'lower-case'],
+            'subject-empty': [2, 'never'],
+            'subject-full-stop': [2, 'never', '.'],
+            'type-case': [2, 'always', 'lower-case'],
+            'type-empty': [2, 'never'],
+            'body-leading-blank': [1, 'always'],
+            'footer-leading-blank': [1, 'always']
+          }
+        };
+        EOF
+
+    - name: Lint commits
+      run: |
+        # Get the base commit (where this branch diverged from main)
+        base_commit=$(git merge-base HEAD origin/main)
+
+        echo "Checking commits from $base_commit to HEAD"
+
+        # Check each commit in the PR
+        failed_commits=()
+        while read -r commit; do
+          if ! echo "$commit" | commitlint; then
+            failed_commits+=("$commit")
+          fi
+        done < <(git rev-list ${base_commit}..HEAD --reverse --pretty=format:"%s" --no-merges | grep -v "^commit")
+
+        if [ ${#failed_commits[@]} -gt 0 ]; then
+          echo "❌ The following commits don't follow conventional commit format:"
+          printf '%s\n' "${failed_commits[@]}"
+          echo
+          echo "Please fix commit messages to follow conventional commit format:"
+          echo "type(scope): description"
+          echo
+          echo "Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore"
+          echo "Examples:"
+          echo "  feat(cli): add new command for listing entries"
+          echo "  fix(export): handle empty date ranges correctly"
+          echo "  docs: update README with installation instructions"
+          exit 1
+        else
+          echo "✅ All commits follow conventional commit format"
+        fi
+
+  suggest-conventional-commits:
+    name: Suggest Conventional Commits
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Analyze commit messages and suggest improvements
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { execSync } = require('child_process');
+
+          try {
+            // Get commits in this PR
+            const baseCommit = execSync('git merge-base HEAD origin/main').toString().trim();
+            const commits = execSync(`git log --format="%H|%s" ${baseCommit}..HEAD --reverse --no-merges`).toString().trim().split('\n').filter(line => line);
+
+            let issues = [];
+            let suggestions = [];
+
+            commits.forEach(line => {
+              const [hash, message] = line.split('|');
+              const shortHash = hash.substring(0, 7);
+
+              // Check if commit follows conventional format
+              const conventionalRegex = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+/;
+
+              if (!conventionalRegex.test(message)) {
+                issues.push(`- \`${shortHash}\`: "${message}"`);
+
+                // Suggest improvements based on common patterns
+                if (message.toLowerCase().includes('add') || message.toLowerCase().includes('implement')) {
+                  suggestions.push(`  → Consider: \`feat: ${message.toLowerCase()}\``);
+                } else if (message.toLowerCase().includes('fix') || message.toLowerCase().includes('bug')) {
+                  suggestions.push(`  → Consider: \`fix: ${message.toLowerCase()}\``);
+                } else if (message.toLowerCase().includes('update') && message.toLowerCase().includes('doc')) {
+                  suggestions.push(`  → Consider: \`docs: ${message.toLowerCase()}\``);
+                } else if (message.toLowerCase().includes('refactor') || message.toLowerCase().includes('clean')) {
+                  suggestions.push(`  → Consider: \`refactor: ${message.toLowerCase()}\``);
+                } else if (message.toLowerCase().includes('test')) {
+                  suggestions.push(`  → Consider: \`test: ${message.toLowerCase()}\``);
+                } else {
+                  suggestions.push(`  → Consider appropriate type: \`feat/fix/docs/refactor: ${message.toLowerCase()}\``);
+                }
+              }
+            });
+
+            if (issues.length > 0) {
+              let body = `## 📝 Conventional Commit Suggestions\n\n`;
+              body += `Some commits in this PR don't follow [conventional commit](https://www.conventionalcommits.org/) format:\n\n`;
+              body += `### Non-conventional commits:\n${issues.join('\n')}\n\n`;
+              body += `### Suggestions:\n${suggestions.join('\n')}\n\n`;
+              body += `### Why conventional commits?\n`;
+              body += `- 🤖 **Automated versioning**: Determines if this PR triggers a release\n`;
+              body += `- 📋 **Auto-generated changelogs**: Creates meaningful release notes\n`;
+              body += `- 🔍 **Clear history**: Makes it easy to understand what changed\n\n`;
+              body += `### Quick reference:\n`;
+              body += `- \`feat:\` - New feature (triggers minor version bump)\n`;
+              body += `- \`fix:\` - Bug fix (triggers patch version bump)\n`;
+              body += `- \`docs:\` - Documentation changes (no version bump)\n`;
+              body += `- \`refactor:\` - Code refactoring (no version bump)\n`;
+              body += `- \`test:\` - Test changes (no version bump)\n`;
+              body += `- \`chore:\` - Other maintenance (no version bump)\n\n`;
+              body += `**Note**: You can fix this by rebasing and updating commit messages, or we can squash merge with a proper conventional commit message.`;
+
+              // Check for existing comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+
+              const existingComment = comments.find(comment =>
+                comment.user.type === 'Bot' &&
+                comment.body.includes('Conventional Commit Suggestions')
+              );
+
+              if (existingComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existingComment.id,
+                  body: body
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: body
+                });
+              }
+            }
+          } catch (error) {
+            console.log('No commits to analyze or error occurred:', error.message);
+          }
+
+  release-impact-check:
+    name: Analyze Release Impact
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install release-plz
+      run: cargo install release-plz
+
+    - name: Analyze version impact
+      id: version_impact
+      run: |
+        cd core
+
+        # Get the base commit (where this branch diverged from main)
+        base_commit=$(git merge-base HEAD origin/main)
+
+        # Check if there are any conventional commits that would trigger a release
+        commits_with_impact=$(git log --oneline ${base_commit}..HEAD --grep="^feat:" --grep="^fix:" --grep="^perf:" --grep="BREAKING CHANGE" | wc -l)
+
+        echo "commits_with_impact=$commits_with_impact" >> $GITHUB_OUTPUT
+
+        # Determine version bump type
+        if git log ${base_commit}..HEAD --grep="BREAKING CHANGE" | grep -q "BREAKING CHANGE"; then
+          echo "version_bump=major" >> $GITHUB_OUTPUT
+          echo "bump_reason=Breaking changes detected" >> $GITHUB_OUTPUT
+        elif git log ${base_commit}..HEAD --oneline | grep -E "^[a-f0-9]+ feat(\(.+\))?:" | head -1; then
+          echo "version_bump=minor" >> $GITHUB_OUTPUT
+          echo "bump_reason=New features added" >> $GITHUB_OUTPUT
+        elif git log ${base_commit}..HEAD --oneline | grep -E "^[a-f0-9]+ (fix|perf)(\(.+\))?:" | head -1; then
+          echo "version_bump=patch" >> $GITHUB_OUTPUT
+          echo "bump_reason=Bug fixes or performance improvements" >> $GITHUB_OUTPUT
+        else
+          echo "version_bump=none" >> $GITHUB_OUTPUT
+          echo "bump_reason=No version-impacting changes" >> $GITHUB_OUTPUT
+        fi
+
+        # Check for missing documentation updates on features
+        feature_commits=$(git log ${base_commit}..HEAD --oneline | grep -E "^[a-f0-9]+ feat(\(.+\))?:" | wc -l)
+        doc_commits=$(git log ${base_commit}..HEAD --oneline | grep -E "^[a-f0-9]+ docs(\(.+\))?:" | wc -l)
+
+        echo "feature_commits=$feature_commits" >> $GITHUB_OUTPUT
+        echo "doc_commits=$doc_commits" >> $GITHUB_OUTPUT
+
+    - name: Check for version impact
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { commits_with_impact, version_bump, bump_reason, feature_commits, doc_commits } = process.env;
+
+          let warnings = [];
+          let suggestions = [];
+
+          // Check if PR will trigger a release
+          if (commits_with_impact === '0') {
+            warnings.push("⚠️ **No version-impacting commits detected**");
+            suggestions.push("- Consider if any changes should use `feat:` or `fix:` prefixes");
+            suggestions.push("- Use `feat:` for new functionality, `fix:` for bug fixes");
+            suggestions.push("- Use `docs:`, `style:`, `refactor:`, `test:`, or `chore:` for non-releasing changes");
+          }
+
+          // Check for missing docs on features
+          if (parseInt(feature_commits) > 0 && parseInt(doc_commits) === 0) {
+            warnings.push("📝 **New features detected but no documentation updates**");
+            suggestions.push("- Consider updating README.md or documentation for new features");
+            suggestions.push("- Add usage examples for new CLI commands");
+            suggestions.push("- Update CHANGELOG.md if needed (release-plz will auto-generate, but manual entries are welcome)");
+          }
+
+          // Check for breaking changes without proper marking
+          const { data: files } = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+          });
+
+          const hasCargoTomlChanges = files.some(file => file.filename.includes('Cargo.toml'));
+          const hasBreakingChanges = version_bump === 'major';
+
+          if (hasCargoTomlChanges && !hasBreakingChanges) {
+            warnings.push("🔧 **Cargo.toml changes detected**");
+            suggestions.push("- Verify dependency updates don't introduce breaking changes");
+            suggestions.push("- Consider if API changes require `BREAKING CHANGE:` footer");
+          }
+
+          // Create comment body
+          let body = `## 🚀 Release Impact Analysis\n\n`;
+
+          if (version_bump !== 'none') {
+            body += `**This PR will trigger a ${version_bump.toUpperCase()} version bump**\n`;
+            body += `- Reason: ${bump_reason}\n`;
+            body += `- Commits with version impact: ${commits_with_impact}\n\n`;
+          } else {
+            body += `**This PR will NOT trigger a release**\n`;
+            body += `- No version-impacting commits found\n\n`;
+          }
+
+          if (warnings.length > 0) {
+            body += `### Warnings\n\n${warnings.join('\n')}\n\n`;
+          }
+
+          if (suggestions.length > 0) {
+            body += `### Suggestions\n\n${suggestions.join('\n')}\n\n`;
+          }
+
+          body += `### Conventional Commit Types\n`;
+          body += `- \`feat:\` - New feature (minor version bump)\n`;
+          body += `- \`fix:\` - Bug fix (patch version bump)\n`;
+          body += `- \`perf:\` - Performance improvement (patch version bump)\n`;
+          body += `- \`docs:\` - Documentation only (no version bump)\n`;
+          body += `- \`style:\` - Code style changes (no version bump)\n`;
+          body += `- \`refactor:\` - Code refactoring (no version bump)\n`;
+          body += `- \`test:\` - Test changes (no version bump)\n`;
+          body += `- \`build/ci:\` - Build/CI changes (no version bump)\n`;
+          body += `- \`chore:\` - Other changes (no version bump)\n\n`;
+          body += `Add \`BREAKING CHANGE:\` in commit footer for major version bumps.\n\n`;
+          body += `*This analysis is provided by release-plz and conventional commits.*`;
+
+          // Find existing comment to update or create new one
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existingComment = comments.find(comment =>
+            comment.user.type === 'Bot' &&
+            comment.body.includes('Release Impact Analysis')
+          );
+
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: body
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+          }
+      env:
+        commits_with_impact: ${{ steps.version_impact.outputs.commits_with_impact }}
+        version_bump: ${{ steps.version_impact.outputs.version_bump }}
+        bump_reason: ${{ steps.version_impact.outputs.bump_reason }}
+        feature_commits: ${{ steps.version_impact.outputs.feature_commits }}
+        doc_commits: ${{ steps.version_impact.outputs.doc_commits }}
+
+  cargo-check:
+    name: Cargo Manifest Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Check Cargo.toml validity
+      run: |
+        cd core
+        cargo check --manifest-path Cargo.toml
+
+    - name: Verify version format
+      run: |
+        cd core
+        version=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+
+        # Check semantic version format
+        if ! echo "$version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'; then
+          echo "❌ Invalid semantic version format: $version"
+          exit 1
+        fi
+
+        echo "✅ Version format is valid: $version"
